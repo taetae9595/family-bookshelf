@@ -919,11 +919,15 @@
       if (t === key) s += 100;
       else if (t.indexOf(key) === 0) s += 60;
       else if (t.indexOf(key) > 0) s += 20;
-      if (/\[세트\]|세트|큰글자|필사집|북투어|한정판|굿즈|사은품/.test(b.title)) s -= 45;
+      if (/\[세트\]|세트|큰글자|필사집|북투어|한정판|굿즈|사은품|볼펜|북마크/.test(b.title)) s -= 200;
       return s;
     }
     return list.map(function (b, i) { return { b: b, i: i, s: score(b) }; })
-      .sort(function (a, b) { return (b.s - a.s) || (a.i - b.i); })
+      .sort(function (a, b) {
+        return (b.s - a.s) ||
+          (a.b.title.length - b.b.title.length) ||
+          (a.i - b.i);
+      })
       .map(function (x) { return x.b; });
   }
 

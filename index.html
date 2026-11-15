@@ -901,7 +901,7 @@
 <script>
   /* 이미 폰에 깔려 있는 옛 서비스워커/캐시가 새 코드를 가로막지 않도록
      화면이 뜨기 전에 옛 캐시를 지우고, 새 서비스워커를 강제로 확인합니다. */
-  window.__FB_VERSION = 'v6';
+  window.__FB_VERSION = 'v7';
   /* ※ app.js 를 고칠 때는 아래 src 의 ?v= 숫자도 같이 올려 주세요.
         폰에 남아 있는 옛 파일이 대신 쓰이는 것을 막아 줍니다. */
   (function () {
@@ -909,7 +909,7 @@
       if (window.caches && caches.keys) {
         caches.keys().then(function (keys) {
           keys.forEach(function (k) {
-            if (k.indexOf('family-bookshelf-v6') !== 0) caches.delete(k);
+            if (k.indexOf('family-bookshelf-v7') !== 0) caches.delete(k);
           });
         }).catch(function () {});
       }
@@ -923,6 +923,6 @@
     } catch (e) {}
   })();
 </script>
-<script src="app.js?v=6" defer></script>
+<script src="app.js?v=7" defer></script>
 </body>
 </html>
