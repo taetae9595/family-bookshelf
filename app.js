@@ -904,6 +904,22 @@
     });
   }
 
+  function rankResults(list, q) {
+    var key = normKey(q);
+    function score(b) {
+      var t = normKey(b.title);
+      var s = 0;
+      if (t === key) s += 100;
+      else if (t.indexOf(key) === 0) s += 60;
+      else if (t.indexOf(key) > 0) s += 20;
+      if (/\[세트\]|세트|큰글자|필사집|북투어|한정판|굿즈|사은품/.test(b.title)) s -= 45;
+      return s;
+    }
+    return list.map(function (b, i) { return { b: b, i: i, s: score(b) }; })
+      .sort(function (a, b) { return (b.s - a.s) || (a.i - b.i); })
+      .map(function (x) { return x.b; });
+  }
+
   function runSearch(q) {
     q = String(q || '').trim();
     if (!q) { $('bookQuery').focus(); return; }
@@ -914,7 +930,7 @@
 
     searchServer(q).catch(function () { return []; }).then(function (list) {
       if (list.length) {
-        var shown = list.slice(0, 12);
+        var shown = rankResults(list, q).slice(0, 12);
         setSearchState(shown.length + '권을 찾았어요. 책을 고르면 오늘 날짜로 꽂힙니다.');
         renderResults(shown);
         $('searchBtn').disabled = false;
