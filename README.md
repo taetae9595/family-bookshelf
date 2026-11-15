@@ -77,6 +77,7 @@ select private.set_passcode('새 비밀번호');
 | `manifest.json` | 홈 화면 앱(PWA) 설정 |
 | `icon.svg`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | 아이콘 |
 | `supabase-setup.sql` | `books` 테이블과 RPC 함수 정의 |
+| `supabase-book-search.sql` | 서버 책 검색(알라딘) 함수 정의 |
 
 ## 책 검색은 어떻게 표지를 찾나요
 
@@ -88,3 +89,9 @@ select private.set_passcode('새 비밀번호');
 - 같은 검색어는 서버에 14일 캐시되어 두 번째부터는 바로 뜹니다.
 - 그래도 표지가 없으면 **직접 추가하기**에서 표지 주소·사진·기본 표지로 넣을 수 있습니다.
 - 이 기능을 쓰려면 `supabase-book-search.sql` 이 프로젝트에 적용되어 있어야 합니다.
+
+## 고칠 때 (캐시 주의)
+
+폰에 한 번 열어 둔 화면은 브라우저가 잠시(약 10분) 기억합니다. `app.js` 를 고치면
+`index.html` 의 `app.js?v=` 숫자와 `sw.js` 의 `CACHE` 버전을 **함께** 올려 주세요.
+그러면 다음 접속에서 옛 파일 대신 새 파일을 받고, 새 서비스워커가 준비되면 화면이 한 번 자동으로 새로고침됩니다.
