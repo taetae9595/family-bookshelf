@@ -274,6 +274,7 @@
 
     if (book.cover) {
       img.hidden = false;
+      img.referrerPolicy = 'no-referrer';
       img.onerror = function () {
         var src = img.getAttribute('src') || '';
         // 알라딘 큰 표지가 없으면 작은 표지로 한 번만 다시
@@ -894,7 +895,7 @@
       return {
         title: String(b.title || ''),
         author: String(b.author || ''),
-        cover: String(b.cover || '').replace('/cover200/', '/cover500/'),
+        cover: String(b.cover || '').replace('/cover200/', '/cover500/').replace(/^http:/i, 'https:'),
         year: String(b.year || ''),
         source: '알라딘'
       };
@@ -934,7 +935,11 @@
     $('results').innerHTML = '';
     setSearchState('책과 표지를 찾고 있어요…', false);
 
-    searchServer(q).catch(function () { return []; }).then(function (list) {
+    var serverError = '';
+    searchServer(q).catch(function (err) {
+      serverError = (err && err.message) ? String(err.message) : 'error';
+      return [];
+    }).then(function (list) {
       if (list.length) {
         var shown = rankResults(list, q).slice(0, 12);
         setSearchState(shown.length + '권을 찾았어요. 책을 고르면 오늘 날짜로 꽂힙니다.');
@@ -947,10 +952,12 @@
       return directSearch(q).then(function (res) {
         $('searchBtn').disabled = false;
         if (!res.list.length) {
+          var why = '';
+          if (serverError) why = ' (서버 검색 오류: ' + serverError.slice(0, 80) + ')';
           setSearchState(
             (res.failed.google && res.failed.openlib)
-              ? '책을 찾지 못했어요. 아래에서 직접 추가할 수 있어요.'
-              : '검색 결과가 없어요. 다른 제목으로 찾아보거나 아래에서 직접 추가해 주세요.',
+              ? '책을 찾지 못했어요' + why + '. 아래에서 직접 추가할 수 있어요.'
+              : '검색 결과가 없어요' + why + '. 다른 제목으로 찾아보거나 아래에서 직접 추가해 주세요.',
             true);
           return;
         }
@@ -1263,10 +1270,19 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 
-  // 서비스 워커 (홈 화면 앱으로 쓸 때)
+  // 서비스 워커 (홈 화면 앱으로 쓸 때) — 새 버전이 준비되면 한 번 새로고침
   if ('serviceWorker' in navigator) {
+    var hadController = !!navigator.serviceWorker.controller;
+    var reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!hadController || reloading) return;
+      reloading = true;
+      location.reload();
+    });
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function () {});
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .then(function (reg) { reg.update().catch(function () {}); })
+        .catch(function () {});
     });
   }
 })();

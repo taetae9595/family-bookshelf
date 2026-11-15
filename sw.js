@@ -1,7 +1,7 @@
 /* 우리 가족 책장 · 서비스 워커
    화면(index.html, app.js 등)은 항상 네트워크에서 먼저 받아 최신 상태를 보여주고,
    인터넷이 없을 때만 캐시를 씁니다. (책 내용은 Supabase에 있습니다) */
-const CACHE = 'family-bookshelf-v3';
+const CACHE = 'family-bookshelf-v6';
 const ASSETS = [
   './',
   './index.html',
