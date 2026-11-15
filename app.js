@@ -481,6 +481,13 @@
   function closeSheet(name) {
     $(name === 'add' ? 'addSheet' : 'bookSheet').hidden = true;
     document.body.classList.remove('sheet-open');
+    if (name === 'book') {
+      // 삭제 확인(두 번 누르기) 상태는 창을 닫으면 풀립니다.
+      state.deleteArmed = false;
+      var del = $('dDelete');
+      del.classList.remove('armed');
+      del.textContent = '삭제';
+    }
   }
 
   function closeAllSheets() {
@@ -583,13 +590,6 @@
       state.deleteArmed = true;
       btn.classList.add('armed');
       btn.textContent = '정말 삭제할까요?';
-      setTimeout(function () {
-        if (state.deleteArmed) {
-          state.deleteArmed = false;
-          btn.classList.remove('armed');
-          btn.textContent = '삭제';
-        }
-      }, 3500);
       return;
     }
 
