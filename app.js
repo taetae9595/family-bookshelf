@@ -843,37 +843,104 @@
     s.className = 'search-state' + (warn ? ' warn' : '');
   }
 
+  function wait(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  /* 서버(알라딘)에서 표지까지 찾아 오는 검색.
+     브라우저의 CORS·할당량 문제를 피하려고 Supabase 함수가 대신 받아 옵니다. */
+  function searchServer(q) {
+    if (!isRemote() || !storedPass()) return Promise.resolve([]);
+
+    return rpc('family_search_books_start', {
+      p_passcode: storedPass(),
+      p_q: q,
+      p_family_id: CONFIG.FAMILY_ID
+    }).then(function (start) {
+      if (!start) return [];
+      if (start.done) return tagServer(start.items);
+
+      var id = start.request_id;
+      if (!id) return [];
+      var tries = 0;
+
+      function poll() {
+        tries += 1;
+        if (tries > 16) return [];
+        return rpc('family_search_books_result', {
+          p_passcode: storedPass(),
+          p_request_id: id,
+          p_q: q,
+          p_family_id: CONFIG.FAMILY_ID
+        }).then(function (res) {
+          if (res && res.done) return tagServer(res.items);
+          return wait(350).then(poll);
+        });
+      }
+
+      return wait(500).then(poll);
+    });
+  }
+
+  function tagServer(items) {
+    var list = Array.isArray(items) ? items : [];
+    return list.filter(function (b) { return b && b.title; }).map(function (b) {
+      return {
+        title: String(b.title || ''),
+        author: String(b.author || ''),
+        cover: String(b.cover || ''),
+        year: String(b.year || ''),
+        source: '알라딘'
+      };
+    });
+  }
+
+  function directSearch(q) {
+    var failed = { google: false, openlib: false };
+    var g = searchGoogle(q).catch(function () { failed.google = true; return []; });
+    var o = searchOpenLibrary(q).catch(function () { failed.openlib = true; return []; });
+    return Promise.all([g, o]).then(function (groups) {
+      return { list: dedupe(groups[0].concat(groups[1])), failed: failed };
+    });
+  }
+
   function runSearch(q) {
     q = String(q || '').trim();
     if (!q) { $('bookQuery').focus(); return; }
 
     $('searchBtn').disabled = true;
     $('results').innerHTML = '';
-    setSearchState('표지를 찾고 있어요…', false);
+    setSearchState('책과 표지를 찾고 있어요…', false);
 
-    var failed = { google: false, openlib: false };
-    var g = searchGoogle(q).catch(function () { failed.google = true; return []; });
-    var o = searchOpenLibrary(q).catch(function () { failed.openlib = true; return []; });
-
-    Promise.all([g, o]).then(function (groups) {
-      $('searchBtn').disabled = false;
-      var list = dedupe(groups[0].concat(groups[1]));
-
-      if (!list.length) {
-        setSearchState(
-          (failed.google && failed.openlib)
-            ? '인터넷 검색에 연결하지 못했어요. 아래에서 직접 추가할 수 있어요.'
-            : '검색 결과가 없어요. 다른 제목으로 찾아보거나 아래에서 직접 추가해 주세요.',
-          true);
+    searchServer(q).catch(function () { return []; }).then(function (list) {
+      if (list.length) {
+        var shown = list.slice(0, 12);
+        setSearchState(shown.length + '권을 찾았어요. 책을 고르면 오늘 날짜로 꽂힙니다.');
+        renderResults(shown);
+        $('searchBtn').disabled = false;
         return;
       }
 
-      var note = '';
-      if (failed.google) note = ' (Google Books 응답 없음 · Open Library 결과)';
-      else if (failed.openlib) note = ' (Open Library 응답 없음 · Google Books 결과)';
-
-      setSearchState(list.length + '권을 찾았어요. 책을 고르면 오늘 날짜로 꽂힙니다.' + note, false);
-      renderResults(list);
+      // 서버 검색이 비었으면 브라우저에서 직접 한 번 더
+      return directSearch(q).then(function (res) {
+        $('searchBtn').disabled = false;
+        if (!res.list.length) {
+          setSearchState(
+            (res.failed.google && res.failed.openlib)
+              ? '책을 찾지 못했어요. 아래에서 직접 추가할 수 있어요.'
+              : '검색 결과가 없어요. 다른 제목으로 찾아보거나 아래에서 직접 추가해 주세요.',
+            true);
+          return;
+        }
+        var note = '';
+        if (res.failed.google) note = ' (Google Books 응답 없음 · Open Library 결과)';
+        else if (res.failed.openlib) note = ' (Open Library 응답 없음 · Google Books 결과)';
+        setSearchState(res.list.length + '권을 찾았어요. 책을 고르면 오늘 날짜로 꽂힙니다.' + note, false);
+        renderResults(res.list);
+      });
+    }).catch(function () {
+      $('searchBtn').disabled = false;
+      setSearchState('검색에 실패했어요. 잠시 뒤 다시 해보거나 아래에서 직접 추가해 주세요.', true);
     });
   }
 

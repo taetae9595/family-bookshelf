@@ -77,3 +77,14 @@ select private.set_passcode('새 비밀번호');
 | `manifest.json` | 홈 화면 앱(PWA) 설정 |
 | `icon.svg`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | 아이콘 |
 | `supabase-setup.sql` | `books` 테이블과 RPC 함수 정의 |
+
+## 책 검색은 어떻게 표지를 찾나요
+
+제목을 넣으면 **Supabase 서버**가 알라딘 검색 결과를 받아 제목·저자·앞표지 주소만 정리해서 돌려줍니다
+(`family_search_books_start` → `family_search_books_result`, 가족 비밀번호 필요).
+브라우저에서 직접 다른 사이트를 부르면 막히는 경우가 많아서, 서버가 대신 찾아 주는 방식입니다.
+
+- 서버 검색이 비어 있으면 브라우저에서 **Google Books · Open Library**를 한 번 더 조회합니다.
+- 같은 검색어는 서버에 14일 캐시되어 두 번째부터는 바로 뜹니다.
+- 그래도 표지가 없으면 **직접 추가하기**에서 표지 주소·사진·기본 표지로 넣을 수 있습니다.
+- 이 기능을 쓰려면 `supabase-book-search.sql` 이 프로젝트에 적용되어 있어야 합니다.
