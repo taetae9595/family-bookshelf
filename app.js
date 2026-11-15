@@ -275,6 +275,12 @@
     if (book.cover) {
       img.hidden = false;
       img.onerror = function () {
+        var src = img.getAttribute('src') || '';
+        // 알라딘 큰 표지가 없으면 작은 표지로 한 번만 다시
+        if (src.indexOf('/cover500/') >= 0) {
+          img.src = src.replace('/cover500/', '/cover200/');
+          return;
+        }
         img.hidden = true;
         img.removeAttribute('src');
         showPlaceholder(box, book);
@@ -888,7 +894,7 @@
       return {
         title: String(b.title || ''),
         author: String(b.author || ''),
-        cover: String(b.cover || ''),
+        cover: String(b.cover || '').replace('/cover200/', '/cover500/'),
         year: String(b.year || ''),
         source: '알라딘'
       };
